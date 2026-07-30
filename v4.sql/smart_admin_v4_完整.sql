@@ -11,7 +11,7 @@
 -- 字符集  ：utf8mb4 / utf8mb4_general_ci
 -- 引擎    ：InnoDB
 -- 兼容版本：MySQL 5.7.8+ / 8.0+
--- 总表数  ：77 张（框架 45 张 + 考试业务 32 张）
+-- 总表数  ：76 张（框架 45 张 + 考试业务 31 张）
 -- 更新日期：2026-07-30
 --
 -- ============================================================================
@@ -68,7 +68,6 @@
 --   🔍 监考与异常（T-06）
 --     t_monitor_event      监控事件表（切屏/失焦/开控制台等，仅记录事实）← v3.2新增
 --     t_abnormal_decision  异常判定表（对事件的判定，支持复核改判）    ← v3.2新增
---     t_abnormal_behavior  异常行为旧表（⚠️ 保留兼容旧数据，新功能用上面两张）
 --
 --   📌 成绩登记（T-21~T-24）
 --     t_random_check       随机抽查成绩
@@ -112,10 +111,6 @@
 --       ③团队联调时减少互相阻塞。
 --       关联关系靠代码校验，不靠数据库约束。
 --
---  6. t_abnormal_behavior 标记"废弃"是什么意思？
---     → 表保留不动（已有数据不丢），但新代码不再往里写数据。
---       新功能统一使用 t_monitor_event + t_abnormal_decision。
---
 -- ============================================================================
 -- 【字段约定速查】
 -- ============================================================================
@@ -154,44 +149,6 @@
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `smart_admin_v3` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 USE `smart_admin_v3`;
-
---
--- Table structure for table `t_abnormal_behavior`
---
-
-DROP TABLE IF EXISTS `t_abnormal_behavior`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `t_abnormal_behavior` (
-  `behavior_id` bigint NOT NULL AUTO_INCREMENT COMMENT '行为 ID',
-  `answer_id` bigint NOT NULL COMMENT '作答记录 ID',
-  `behavior_type` tinyint NOT NULL COMMENT '类型 [1:切屏,2:失焦,3:退出全屏,4:人脸离开,5:多人出现,6:声音异常,7:开开发者工具]',
-  `severity` tinyint NOT NULL DEFAULT '1' COMMENT '严重度 [1:低,2:中,3:高,4:严重]',
-  `happen_second` int NOT NULL COMMENT '发生时间点（考试开始后第 X 秒）',
-  `screenshot_url` varchar(500) DEFAULT NULL COMMENT '抓拍截图 URL',
-  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态 [1:待处理,2:确认违规,3:标记误判]',
-  `deduct_points` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '扣分值',
-  `teacher_remark` varchar(500) DEFAULT NULL COMMENT '教师处理意见',
-  `teacher_id` bigint DEFAULT NULL COMMENT '处理教师 ID（t_employee.employee_id）',
-  `occurred_at` datetime DEFAULT NULL COMMENT '事件发生时间（客户端上报）',
-  `received_at` datetime DEFAULT NULL COMMENT '服务器接收时间（与occurred_at对比可检测客户端时间篡改）',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`behavior_id`),
-  KEY `idx_answer_id` (`answer_id`),
-  KEY `idx_type_status` (`behavior_type`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='异常行为记录表（🛑 已废弃：新数据请写 t_monitor_event + t_abnormal_decision，旧数据保留仅作历史归档。迁移脚本见文件末尾）';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `t_abnormal_behavior`
---
-
-LOCK TABLES `t_abnormal_behavior` WRITE;
-/*!40000 ALTER TABLE `t_abnormal_behavior` DISABLE KEYS */;
-INSERT INTO `t_abnormal_behavior` VALUES (1,1,1,2,1800,'/monitor/exam1/stu4_switch.png',2,5.00,NULL,NULL,NULL,NULL,'2026-07-30 01:49:05',NULL),(2,2,4,1,2700,'/monitor/exam1/stu5_faceaway.png',1,0.00,NULL,NULL,NULL,NULL,'2026-07-30 01:49:05',NULL);
-/*!40000 ALTER TABLE `t_abnormal_behavior` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `t_answer_detail`
@@ -2641,7 +2598,7 @@ INSERT INTO `t_course_audience` (`offering_id`, `department_id`)
 VALUES (1, 2);
 
 -- ----------------------------
--- 6. t_monitor_event（从旧 t_abnormal_behavior 数据迁移 + 新增一条示例）
+-- 6. t_monitor_event（3 条异常事件示例：切屏 / 人脸离开 / 开开发者工具）
 -- ----------------------------
 INSERT INTO `t_monitor_event` (`answer_id`, `exam_id`, `student_id`, `event_type`, `severity`, `description`, `evidence_url`, `occurred_at`, `received_at`)
 VALUES
@@ -2680,58 +2637,6 @@ VALUES
 (5, 1, 1, NULL, 5, '2025-09-03 10:05:00'),
 (6, 1, 1, NULL, 6, '2025-09-03 14:30:00'),
 (4, 2, 1, NULL, 4, '2025-09-04 09:00:00');
-
--- ============================================================
--- v4.0 旧异常数据迁移：t_abnormal_behavior → t_monitor_event + t_abnormal_decision
--- 说明：保留历史数据的同时切换到新体系。迁移后旧表仅作历史归档。
--- ============================================================
-
--- 第1步：将旧异常记录的事件部分迁移到 t_monitor_event
--- （如果手动插入的种子数据已覆盖则跳过，此处用 INSERT IGNORE 保证幂等）
-INSERT IGNORE INTO `t_monitor_event` (`answer_id`, `exam_id`, `student_id`, `event_type`, `severity`, `description`, `evidence_url`, `occurred_at`, `received_at`)
-SELECT
-    ab.`answer_id`,
-    sa.`exam_id`,
-    sa.`student_id`,
-    ab.`behavior_type`   AS `event_type`,
-    ab.`severity`,
-    CASE ab.`behavior_type`
-        WHEN 1 THEN CONCAT('切屏事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 2 THEN CONCAT('失焦事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 3 THEN CONCAT('退出全屏事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 4 THEN CONCAT('人脸离开事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 5 THEN CONCAT('多人出现事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 6 THEN CONCAT('声音异常事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        WHEN 7 THEN CONCAT('开开发者工具事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-        ELSE CONCAT('未知异常事件（发生时间：考试开始后第', ab.`happen_second`, '秒）')
-    END AS `description`,
-    ab.`screenshot_url`   AS `evidence_url`,
-    ab.`occurred_at`,
-    ab.`received_at`
-FROM `t_abnormal_behavior` ab
-JOIN `t_student_answer` sa ON ab.`answer_id` = sa.`answer_id`;
-
--- 第2步：将旧异常记录的判定部分迁移到 t_abnormal_decision
-INSERT IGNORE INTO `t_abnormal_decision` (`event_id`, `decision`, `deduct_points`, `comment`, `handled_by`, `handled_at`, `version`, `exam_id`)
-SELECT
-    me.`event_id`,
-    CASE ab.`status`
-        WHEN 1 THEN 1   -- 待处理 → 确认违规（默认初判）
-        WHEN 2 THEN 1   -- 确认违规 → 确认违规
-        WHEN 3 THEN 2   -- 标记误判 → 标记误判
-        ELSE 1
-    END AS `decision`,
-    ab.`deduct_points`,
-    ab.`teacher_remark` AS `comment`,
-    ab.`teacher_id`     AS `handled_by`,
-    ab.`update_time`    AS `handled_at`,
-    1                   AS `version`,  -- 迁移数据统一标记为初判版本
-    sa.`exam_id`
-FROM `t_abnormal_behavior` ab
-JOIN `t_student_answer` sa ON ab.`answer_id` = sa.`answer_id`
-JOIN `t_monitor_event`  me ON me.`answer_id` = ab.`answer_id`
-                          AND me.`event_type` = ab.`behavior_type`
-                          AND me.`occurred_at` = ab.`occurred_at`;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
