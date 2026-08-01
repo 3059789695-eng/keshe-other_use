@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 文件：OrganizationMapper.xml -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.course.opening.mapper.OrganizationMapper">
+    <select id="selectById" resultType="com.course.opening.entity.Organization">
+        SELECT id, name
+        FROM organizations
+        WHERE id = #{id}
+    </select>
+    <select id="selectClassOptions" resultType="com.course.opening.vo.ClassOptionVO">
+        SELECT id, name AS class_name
+        FROM organizations
+        ORDER BY id
+    </select>
+</mapper>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 文件：CourseOpeningMapper.xml -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.course.opening.mapper.CourseOpeningMapper">
+
+    <resultMap id="entityMap" type="com.course.opening.entity.CourseOpening">
+        <id column="id" property="id"/>
+        <result column="course_id" property="courseId"/>
+        <result column="semester_id" property="semesterId"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="max_students" property="maxStudents"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="entityMap">
+        SELECT id, course_id, semester_id, teacher_id, max_students
+        FROM course_offerings
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.course.opening.entity.CourseOpening"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO course_offerings (course_id, semester_id, teacher_id, max_students, status)
+        VALUES (#{courseId}, #{semesterId}, #{teacherId}, #{maxStudents}, 0)
+    </insert>
+
+    <update id="updateById" parameterType="com.course.opening.entity.CourseOpening">
+        UPDATE course_offerings
+        SET teacher_id = #{teacherId},
+            max_students = #{maxStudents}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM course_offerings
+        WHERE id = #{id}
+    </delete>
+
+    <sql id="pageWhere">
+        <where>
+            <if test="courseName != null and courseName != ''">
+                AND c.title LIKE CONCAT('%', #{courseName}, '%')
+            </if>
+            <if test="semesterId != null">
+                AND co.semester_id = #{semesterId}
+            </if>
+            <if test="semesterName != null and semesterName != ''">
+                AND s.name = #{semesterName}
+            </if>
+            <if test="teacherName != null and teacherName != ''">
+                AND u.name LIKE CONCAT('%', #{teacherName}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultType="com.course.opening.vo.CourseOpeningPageVO">
+        SELECT co.id, co.course_id, c.id AS course_no, c.title AS course_name,
+               c.credits AS credit, co.semester_id, s.name AS semester_name,
+               co.teacher_id, u.name AS teacher_name, co.max_students
+        FROM course_offerings co
+        INNER JOIN courses c ON co.course_id = c.id
+        INNER JOIN semesters s ON co.semester_id = s.id
+        INNER JOIN teachers t ON co.teacher_id = t.id
+        INNER JOIN users u ON t.id = u.id
+        <include refid="pageWhere"/>
+        ORDER BY co.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM course_offerings co
+        INNER JOIN courses c ON co.course_id = c.id
+        INNER JOIN semesters s ON co.semester_id = s.id
+        INNER JOIN teachers t ON co.teacher_id = t.id
+        INNER JOIN users u ON t.id = u.id
+        <include refid="pageWhere"/>
+    </select>
+
+    <select id="countByUnique" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM course_offerings
+        WHERE course_id = #{courseId}
+          AND semester_id = #{semesterId}
+          AND teacher_id = #{teacherId}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+</mapper>
