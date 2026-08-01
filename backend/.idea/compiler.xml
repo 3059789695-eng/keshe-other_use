@@ -7,15 +7,13 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="course-opening" />
-        <module name="sa-parent" />
+        <module name="user-role-assignment" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="course-opening" options="-parameters" />
-      <module name="sa-parent" options="-parameters" />
+      <module name="user-role-assignment" options="-parameters" />
     </option>
   </component>
 </project>

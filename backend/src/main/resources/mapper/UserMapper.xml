@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.course.userrole.mapper.UserMapper">
+
+    <select id="selectById" resultType="com.course.userrole.entity.User">
+        SELECT id, username, password, name, email, user_type, status,
+               temp_pwd_flag, created_at, updated_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <!--
+      分页联表查询用户及其角色。
+      users LEFT JOIN user_roles LEFT JOIN roles，未分配角色的用户也能展示。
+      roleIds / roleNames 使用 GROUP_CONCAT 拼接；assigned 标识是否已分配角色。
+    -->
+    <select id="selectUserPage"
+            resultType="com.course.userrole.vo.UserRolePageVO">
+        SELECT u.id,
+               u.username,
+               u.name,
+               GROUP_CONCAT(ur.role_id ORDER BY ur.role_id SEPARATOR ',') AS roleIds,
+               GROUP_CONCAT(r.name ORDER BY r.id SEPARATOR ',')          AS roleNames,
+               CASE WHEN COUNT(ur.role_id) > 0 THEN 1 ELSE 0 END         AS assigned
+        FROM users u
+        LEFT JOIN user_roles ur ON ur.user_id = u.id
+        LEFT JOIN roles r ON r.id = ur.role_id
+        <where>
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+        GROUP BY u.id, u.username, u.name
+        ORDER BY u.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countUserPage" resultType="long">
+        SELECT COUNT(1)
+        FROM users u
+        <where>
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

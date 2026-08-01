@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.course.userrole.mapper.RoleMapper">
+
+    <select id="selectById" resultType="com.course.userrole.entity.Role">
+        SELECT id, name, description
+        FROM roles
+        WHERE id = #{id}
+    </select>
+
+    <!-- 当前 roles 表没有 role_code 字段，因此先用 name 作为角色编码返回 -->
+    <select id="selectAllRoles" resultType="com.course.userrole.vo.RoleVO">
+        SELECT id,
+               name        AS roleName,
+               name        AS roleCode,
+               description
+        FROM roles
+        ORDER BY id
+    </select>
+
+</mapper>
