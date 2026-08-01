@@ -118,7 +118,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.baomidou</groupId>git diff main..member-a/main --stat
+            <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>
         </dependency>
 

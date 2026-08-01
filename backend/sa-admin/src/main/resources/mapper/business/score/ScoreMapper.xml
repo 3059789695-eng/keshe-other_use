@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.lab1024.sa.admin.module.business.score.dao.ScoreDao">
+
+    <update id="updateAnswerScore">
+        UPDATE t_exam_answer
+        SET final_score = #{adjustedScore}
+        WHERE answer_id = #{answerId}
+    </update>
+
+    <update id="recalculateExamScore">
+        UPDATE t_exam_record r
+        INNER JOIN t_exam_answer target ON target.exam_record_id = r.exam_record_id
+        SET r.total_score = (SELECT COALESCE(SUM(all_answer.final_score), 0)
+                             FROM t_exam_answer all_answer
+                             WHERE all_answer.exam_record_id = r.exam_record_id)
+        WHERE target.answer_id = #{answerId}
+    </update>
+</mapper>

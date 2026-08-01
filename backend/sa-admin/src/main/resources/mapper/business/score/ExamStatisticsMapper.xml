@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.lab1024.sa.admin.module.business.score.dao.ExamStatisticsDao">
+
+    <select id="queryExam" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.ExamListVO">
+        SELECT e.exam_id, e.semester_id, e.course_id, e.exam_name, e.exam_date,
+               e.total_score, e.exam_status,
+               COUNT(r.exam_record_id) AS assigned_count,
+               SUM(CASE WHEN r.record_status = 2 THEN 1 ELSE 0 END) AS completed_count
+        FROM t_exam_exam e
+        LEFT JOIN t_exam_record r ON r.exam_id = e.exam_id
+        <where>
+            e.deleted_flag = b'0'
+            <if test="query.semesterId != null">AND e.semester_id = #{query.semesterId}</if>
+            <if test="query.courseId != null">AND e.course_id = #{query.courseId}</if>
+            <if test="query.examStatus != null">AND e.exam_status = #{query.examStatus}</if>
+            <if test="query.examName != null and query.examName != ''">
+                AND INSTR(e.exam_name, #{query.examName})
+            </if>
+        </where>
+        GROUP BY e.exam_id, e.semester_id, e.course_id, e.exam_name, e.exam_date, e.total_score, e.exam_status
+        ORDER BY e.exam_date DESC, e.exam_id DESC
+    </select>
+
+    <select id="queryStatistics" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.ExamStatisticsVO">
+        SELECT e.exam_id, e.exam_name, e.total_score, e.pass_score,
+               COUNT(r.exam_record_id) AS assigned_count,
+               SUM(CASE WHEN r.record_status = 2 THEN 1 ELSE 0 END) AS participant_count,
+               COALESCE(ROUND(AVG(CASE WHEN r.record_status = 2 THEN r.total_score END), 2), 0) AS average_score,
+               COALESCE(MAX(CASE WHEN r.record_status = 2 THEN r.total_score END), 0) AS highest_score,
+               COALESCE(MIN(CASE WHEN r.record_status = 2 THEN r.total_score END), 0) AS lowest_score,
+               COALESCE(ROUND(100 * SUM(CASE WHEN r.record_status = 2 AND r.total_score &gt;= e.pass_score THEN 1 ELSE 0 END)
+                   / NULLIF(SUM(CASE WHEN r.record_status = 2 THEN 1 ELSE 0 END), 0), 2), 0) AS pass_rate
+        FROM t_exam_exam e
+        LEFT JOIN t_exam_record r ON r.exam_id = e.exam_id
+        WHERE e.exam_id = #{examId} AND e.deleted_flag = b'0'
+        GROUP BY e.exam_id, e.exam_name, e.total_score, e.pass_score
+    </select>
+
+    <select id="queryScoreDistribution" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.ScoreRangeVO">
+        SELECT ranges.score_range, COUNT(r.exam_record_id) AS student_count
+        FROM (
+            SELECT '0-59' score_range, 1 sort_no UNION ALL
+            SELECT '60-69', 2 UNION ALL SELECT '70-79', 3 UNION ALL
+            SELECT '80-89', 4 UNION ALL SELECT '90-100', 5
+        ) ranges
+        LEFT JOIN t_exam_record r ON r.exam_id = #{examId} AND r.record_status = 2
+            AND ranges.score_range = CASE
+                WHEN r.total_score &lt; 60 THEN '0-59'
+                WHEN r.total_score &lt; 70 THEN '60-69'
+                WHEN r.total_score &lt; 80 THEN '70-79'
+                WHEN r.total_score &lt; 90 THEN '80-89'
+                ELSE '90-100' END
+        GROUP BY ranges.score_range, ranges.sort_no
+        ORDER BY ranges.sort_no
+    </select>
+
+    <sql id="studentScoreColumns">
+        r.exam_record_id, s.student_id, s.student_no, s.student_name,
+        r.record_status AS completion_status,
+        CASE r.record_status WHEN 0 THEN '未开始' WHEN 1 THEN '进行中' WHEN 2 THEN '已提交' ELSE '未知' END AS completion_status_name,
+        r.last_active_time, r.submit_time, r.total_score
+    </sql>
+
+    <select id="queryStudent" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.StudentScoreVO">
+        SELECT <include refid="studentScoreColumns"/>
+        FROM t_exam_record r
+        INNER JOIN t_exam_student s ON s.student_id = r.student_id
+        <where>
+            r.exam_id = #{query.examId}
+            <if test="query.completionStatus != null">AND r.record_status = #{query.completionStatus}</if>
+            <if test="query.studentKeyword != null and query.studentKeyword != ''">
+                AND (INSTR(s.student_no, #{query.studentKeyword}) OR INSTR(s.student_name, #{query.studentKeyword}))
+            </if>
+        </where>
+        ORDER BY r.record_status ASC, r.total_score DESC, s.student_no ASC
+    </select>
+
+    <select id="queryAnswerDetail" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.StudentAnswerDetailVO">
+        SELECT r.exam_record_id, e.exam_id, e.exam_name, s.student_id, s.student_no, s.student_name,
+               r.submit_time, r.total_score
+        FROM t_exam_record r
+        INNER JOIN t_exam_exam e ON e.exam_id = r.exam_id
+        INNER JOIN t_exam_student s ON s.student_id = r.student_id
+        WHERE r.exam_id = #{examId} AND r.student_id = #{studentId}
+    </select>
+
+    <select id="queryAnswerItems" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.AnswerItemVO">
+        SELECT answer_id, question_id, question_content, student_answer, ai_score,
+               final_score, max_score, ai_comment
+        FROM t_exam_answer
+        WHERE exam_record_id = #{examRecordId}
+        ORDER BY question_id, answer_id
+    </select>
+
+    <select id="queryAllStudentScores" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.StudentScoreExcelVO">
+        SELECT s.student_no, s.student_name,
+               CASE r.record_status WHEN 0 THEN '未开始' WHEN 1 THEN '进行中' WHEN 2 THEN '已提交' ELSE '未知' END AS completion_status_name,
+               r.submit_time, r.total_score
+        FROM t_exam_record r
+        INNER JOIN t_exam_student s ON s.student_id = r.student_id
+        WHERE r.exam_id = #{examId}
+        ORDER BY r.total_score DESC, s.student_no ASC
+    </select>
+
+    <select id="queryUnfinishedStudents" resultType="net.lab1024.sa.admin.module.business.score.domain.vo.UnfinishedStudentExcelVO">
+        SELECT s.student_no, s.student_name,
+               CASE r.record_status WHEN 0 THEN '未开始' WHEN 1 THEN '进行中' ELSE '未知' END AS completion_status_name,
+               r.last_active_time
+        FROM t_exam_record r
+        INNER JOIN t_exam_student s ON s.student_id = r.student_id
+        WHERE r.exam_id = #{examId} AND r.record_status != 2
+        ORDER BY r.record_status, s.student_no
+    </select>
+</mapper>
