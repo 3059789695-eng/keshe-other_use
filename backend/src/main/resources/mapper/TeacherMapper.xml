@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 文件：TeacherMapper.xml -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.student.manager.mapper.TeacherMapper">
+
+    <select id="selectById" resultType="com.student.manager.entity.Teacher">
+        SELECT id, teacher_no, major_id
+        FROM teachers
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO teachers (id, teacher_no, major_id)
+        VALUES (#{id}, #{teacherNo}, #{majorId})
+    </insert>
+
+    <update id="updateById">
+        UPDATE teachers
+        SET teacher_no = #{teacherNo},
+            major_id = #{majorId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM teachers
+        WHERE id = #{id}
+    </delete>
+
+    <sql id="pageWhere">
+        <where>
+            <if test="teacherNo != null and teacherNo != ''">
+                AND t.teacher_no LIKE CONCAT('%', #{teacherNo}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultType="com.student.manager.dto.TeacherPageVO">
+        SELECT t.id, t.teacher_no, u.name, t.major_id, o.name AS major_name
+        FROM teachers t
+        LEFT JOIN users u ON t.id = u.id
+        LEFT JOIN organizations o ON t.major_id = o.id
+        <include refid="pageWhere"/>
+        ORDER BY t.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM teachers t
+        LEFT JOIN users u ON t.id = u.id
+        LEFT JOIN organizations o ON t.major_id = o.id
+        <include refid="pageWhere"/>
+    </select>
+
+    <select id="selectByTeacherNo" resultType="com.student.manager.entity.Teacher">
+        SELECT id, teacher_no, major_id
+        FROM teachers
+        WHERE teacher_no = #{teacherNo}
+        LIMIT 1
+    </select>
+
+    <select id="selectAllTeacherNos" resultType="java.lang.String">
+        SELECT teacher_no
+        FROM teachers
+    </select>
+
+    <select id="selectCountByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM users
+        WHERE id = #{userId}
+    </select>
+
+    <select id="selectOrgIdById" resultType="java.lang.Integer">
+        SELECT id
+        FROM organizations
+        WHERE id = #{orgId}
+        LIMIT 1
+    </select>
+
+    <select id="selectUserIdsByName" resultType="java.lang.Integer">
+        SELECT id
+        FROM users
+        WHERE name = #{name}
+        ORDER BY id
+    </select>
+
+    <select id="selectOrgIdsByName" resultType="java.lang.Integer">
+        SELECT id
+        FROM organizations
+        WHERE name = #{name}
+        ORDER BY id
+    </select>
+
+    <insert id="batchInsertTeachers">
+        INSERT INTO teachers (id, teacher_no, major_id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.teacherNo}, #{item.majorId})
+        </foreach>
+    </insert>
+</mapper>

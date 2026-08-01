@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 文件：StudentMapper.xml -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.student.manager.mapper.StudentMapper">
+
+    <select id="selectById" resultType="com.student.manager.entity.Student">
+        SELECT id, student_no, class_id
+        FROM students
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO students (id, student_no, class_id)
+        VALUES (#{id}, #{studentNo}, #{classId})
+    </insert>
+
+    <update id="updateById">
+        UPDATE students
+        SET student_no = #{studentNo},
+            class_id = #{classId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM students
+        WHERE id = #{id}
+    </delete>
+
+    <sql id="pageWhere">
+        <where>
+            <if test="studentNo != null and studentNo != ''">
+                AND s.student_no LIKE CONCAT('%', #{studentNo}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultType="com.student.manager.dto.StudentPageVO">
+        SELECT s.id, s.student_no, u.name, s.class_id, o.name AS class_name
+        FROM students s
+        LEFT JOIN users u ON s.id = u.id
+        LEFT JOIN organizations o ON s.class_id = o.id
+        <include refid="pageWhere"/>
+        ORDER BY s.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM students s
+        LEFT JOIN users u ON s.id = u.id
+        LEFT JOIN organizations o ON s.class_id = o.id
+        <include refid="pageWhere"/>
+    </select>
+
+    <select id="selectByStudentNo" resultType="com.student.manager.entity.Student">
+        SELECT id, student_no, class_id
+        FROM students
+        WHERE student_no = #{studentNo}
+        LIMIT 1
+    </select>
+
+    <select id="selectAllStudentNos" resultType="java.lang.String">
+        SELECT student_no
+        FROM students
+    </select>
+
+    <select id="selectUserIdByName" resultType="java.lang.Integer">
+        SELECT id
+        FROM users
+        WHERE name = #{name}
+        ORDER BY id
+    </select>
+
+    <select id="selectOrgIdByName" resultType="java.lang.Integer">
+        SELECT id
+        FROM organizations
+        WHERE name = #{name}
+        LIMIT 1
+    </select>
+
+    <select id="selectCountByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM users
+        WHERE id = #{userId}
+    </select>
+
+    <select id="selectOrgIdById" resultType="java.lang.Integer">
+        SELECT id
+        FROM organizations
+        WHERE id = #{orgId}
+        LIMIT 1
+    </select>
+
+    <insert id="batchInsertStudents">
+        INSERT INTO students (id, student_no, class_id)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.studentNo}, #{item.classId})
+        </foreach>
+    </insert>
+</mapper>
