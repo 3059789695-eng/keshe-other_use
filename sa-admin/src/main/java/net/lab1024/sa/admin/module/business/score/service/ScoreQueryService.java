@@ -1,6 +1,5 @@
 package net.lab1024.sa.admin.module.business.score.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
@@ -69,28 +68,19 @@ public class ScoreQueryService {
         }
 
         // 2. 查询成绩记录
-        ScoreEntity scoreEntity = scoreDao.selectOne(
-                new LambdaQueryWrapper<ScoreEntity>()
-                        .eq(ScoreEntity::getExamId, form.getExamId())
-                        .eq(ScoreEntity::getStudentId, studentId));
+        ScoreEntity scoreEntity = scoreDao.selectByExamIdAndStudent(form.getExamId(), studentId);
         if (scoreEntity == null) {
             return ResponseDTO.error(UserErrorCode.DATA_NOT_EXIST);
         }
 
         // 3. 查询作答记录
-        StudentAnswerEntity answerEntity = studentAnswerDao.selectOne(
-                new LambdaQueryWrapper<StudentAnswerEntity>()
-                        .eq(StudentAnswerEntity::getExamId, form.getExamId())
-                        .eq(StudentAnswerEntity::getStudentId, studentId));
+        StudentAnswerEntity answerEntity = studentAnswerDao.selectByExamIdAndStudent(form.getExamId(), studentId);
         if (answerEntity == null) {
             return ResponseDTO.error(UserErrorCode.DATA_NOT_EXIST);
         }
 
         // 4. 查询答案详情（每题得分）
-        List<AnswerDetailEntity> detailList = answerDetailDao.selectList(
-                new LambdaQueryWrapper<AnswerDetailEntity>()
-                        .eq(AnswerDetailEntity::getAnswerId, answerEntity.getAnswerId()));
-
+        List<AnswerDetailEntity> detailList = answerDetailDao.selectByAnswerId(answerEntity.getAnswerId());
         if (detailList.isEmpty()) {
             return ResponseDTO.error(UserErrorCode.DATA_NOT_EXIST);
         }
@@ -262,11 +252,7 @@ public class ScoreQueryService {
      */
     private void fillAppealStatus(ScoreQuestionVO vo, Long answerDetailId) {
         try {
-            AppealEntity appeal = appealDao.selectOne(
-                    new LambdaQueryWrapper<AppealEntity>()
-                            .eq(AppealEntity::getAnswerDetailId, answerDetailId)
-                            .orderByDesc(AppealEntity::getCreateTime)
-                            .last("LIMIT 1"));
+            AppealEntity appeal = appealDao.selectLatestByAnswerDetailId(answerDetailId);
             if (appeal != null) {
                 vo.setAppealed(true);
                 vo.setAppealStatus(appeal.getStatus());
@@ -298,11 +284,7 @@ public class ScoreQueryService {
         }
 
         // 2. 查询该学生所有成绩，按交卷时间倒序
-        List<ScoreEntity> scoreList = scoreDao.selectList(
-                new LambdaQueryWrapper<ScoreEntity>()
-                        .eq(ScoreEntity::getStudentId, studentId)
-                        .orderByDesc(ScoreEntity::getSubmitTime));
-
+        List<ScoreEntity> scoreList = scoreDao.selectByStudentId(studentId);
         if (scoreList.isEmpty()) {
             return ResponseDTO.ok(Collections.emptyList());
         }
@@ -313,10 +295,7 @@ public class ScoreQueryService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        List<AppealEntity> appeals = appealDao.selectList(
-                new LambdaQueryWrapper<AppealEntity>()
-                        .in(AppealEntity::getExamId, examIds)
-                        .eq(AppealEntity::getStudentId, studentId));
+        List<AppealEntity> appeals = appealDao.selectByExamIdsAndStudent(examIds, studentId);
 
         Set<Long> appealedExamIds = appeals.stream()
                 .map(AppealEntity::getExamId)

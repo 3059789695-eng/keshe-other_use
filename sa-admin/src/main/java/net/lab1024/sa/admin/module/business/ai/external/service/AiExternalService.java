@@ -1,6 +1,5 @@
 package net.lab1024.sa.admin.module.business.ai.external.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
@@ -54,11 +53,7 @@ public class AiExternalService {
      */
     public List<PendingAnswerResponse> queryPendingAnswers() {
         // 1. 查询所有标记为外部服务且未批改的答案详情
-        List<AnswerDetailEntity> details = answerDetailDao.selectList(
-                new LambdaQueryWrapper<AnswerDetailEntity>()
-                        .isNull(AnswerDetailEntity::getScore)
-                        .eq(AnswerDetailEntity::getGradeType, 2));
-
+        List<AnswerDetailEntity> details = answerDetailDao.selectUngradedExternal();
         if (details.isEmpty()) {
             return Collections.emptyList();
         }
@@ -69,9 +64,7 @@ public class AiExternalService {
                 .collect(Collectors.toSet());
 
         // 3. 批量查询作答记录（获取 examId、studentId、status）
-        List<StudentAnswerEntity> studentAnswers = studentAnswerDao.selectList(
-                new LambdaQueryWrapper<StudentAnswerEntity>()
-                        .in(StudentAnswerEntity::getAnswerId, answerIds));
+        List<StudentAnswerEntity> studentAnswers = studentAnswerDao.selectByAnswerIds(new ArrayList<>(answerIds));
 
         Map<Long, StudentAnswerEntity> answerMap = studentAnswers.stream()
                 .collect(Collectors.toMap(
@@ -187,11 +180,7 @@ public class AiExternalService {
     @Transactional(rollbackFor = Exception.class)
     public void submitFeedback(FeedbackSubmitRequest request) {
         // 1. 查询成绩记录
-        ScoreEntity scoreEntity = scoreDao.selectOne(
-                new LambdaQueryWrapper<ScoreEntity>()
-                        .eq(ScoreEntity::getExamId, request.getExamId())
-                        .eq(ScoreEntity::getStudentId, request.getStudentId()));
-
+        ScoreEntity scoreEntity = scoreDao.selectByExamIdAndStudent(request.getExamId(), request.getStudentId());
         if (scoreEntity == null) {
             log.warn("提交学习建议失败：成绩记录不存在，examId={}, studentId={}",
                     request.getExamId(), request.getStudentId());
@@ -245,9 +234,7 @@ public class AiExternalService {
         }
 
         // 2. 查询该作答记录下所有答案详情的得分
-        List<AnswerDetailEntity> details = answerDetailDao.selectList(
-                new LambdaQueryWrapper<AnswerDetailEntity>()
-                        .eq(AnswerDetailEntity::getAnswerId, answerId));
+        List<AnswerDetailEntity> details = answerDetailDao.selectByAnswerId(answerId);
 
         // 如果有题目还未批改，不重算
         boolean hasUngraded = details.stream().anyMatch(d -> d.getScore() == null);
@@ -263,10 +250,8 @@ public class AiExternalService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // 4. 查找或创建成绩记录
-        ScoreEntity scoreEntity = scoreDao.selectOne(
-                new LambdaQueryWrapper<ScoreEntity>()
-                        .eq(ScoreEntity::getExamId, studentAnswer.getExamId())
-                        .eq(ScoreEntity::getStudentId, studentAnswer.getStudentId()));
+        ScoreEntity scoreEntity = scoreDao.selectByExamIdAndStudent(
+                studentAnswer.getExamId(), studentAnswer.getStudentId());
 
         if (scoreEntity == null) {
             // 首次批改，创建成绩记录

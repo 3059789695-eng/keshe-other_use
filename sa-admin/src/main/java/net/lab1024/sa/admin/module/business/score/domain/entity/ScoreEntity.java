@@ -1,8 +1,5 @@
 package net.lab1024.sa.admin.module.business.score.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -12,10 +9,8 @@ import java.time.LocalDateTime;
  * 成绩表 t_score
  */
 @Data
-@TableName("t_score")
 public class ScoreEntity {
 
-    @TableId(type = IdType.AUTO)
     private Long scoreId;
 
     private Long examId;

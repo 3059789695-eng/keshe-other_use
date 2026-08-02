@@ -33,11 +33,7 @@ public class ScoreService {
     @Transactional(rollbackFor = Exception.class)
     public ResponseDTO<String> recalculateScore(Long examId, Long studentId, BigDecimal newScore) {
         // 1. 查询已有成绩记录
-        ScoreEntity entity = scoreDao.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ScoreEntity>()
-                        .eq(ScoreEntity::getExamId, examId)
-                        .eq(ScoreEntity::getStudentId, studentId));
-
+        ScoreEntity entity = scoreDao.selectByExamIdAndStudent(examId, studentId);
         if (entity == null) {
             return ResponseDTO.error(UserErrorCode.DATA_NOT_EXIST);
         }

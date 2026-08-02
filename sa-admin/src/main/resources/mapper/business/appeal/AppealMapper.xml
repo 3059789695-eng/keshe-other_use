@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.lab1024.sa.admin.module.business.appeal.dao.AppealDao">
+
+    <resultMap id="appealResultMap" type="net.lab1024.sa.admin.module.business.appeal.domain.entity.AppealEntity">
+        <id property="appealId" column="appeal_id"/>
+        <result property="scoreId" column="score_id"/>
+        <result property="answerDetailId" column="answer_detail_id"/>
+        <result property="examId" column="exam_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="appealReason" column="appeal_reason"/>
+        <result property="evidenceUrls" column="evidence_urls"/>
+        <result property="status" column="status"/>
+        <result property="oldScore" column="old_score"/>
+        <result property="newScore" column="new_score"/>
+        <result property="teacherRemark" column="teacher_remark"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="handleTime" column="handle_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="appealId">
+        INSERT INTO t_appeal (score_id, answer_detail_id, exam_id, student_id,
+                              appeal_reason, evidence_urls, status, old_score, new_score,
+                              teacher_remark, teacher_id, handle_time, create_time, update_time)
+        VALUES (#{scoreId}, #{answerDetailId}, #{examId}, #{studentId},
+                #{appealReason}, #{evidenceUrls}, #{status}, #{oldScore}, #{newScore},
+                #{teacherRemark}, #{teacherId}, #{handleTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="selectById" resultMap="appealResultMap">
+        SELECT * FROM t_appeal WHERE appeal_id = #{appealId}
+    </select>
+
+    <select id="selectLatestByAnswerDetailId" resultMap="appealResultMap">
+        SELECT * FROM t_appeal
+        WHERE answer_detail_id = #{answerDetailId}
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByAnswerDetailAndStudent" resultMap="appealResultMap">
+        SELECT * FROM t_appeal
+        WHERE answer_detail_id = #{answerDetailId}
+          AND student_id = #{studentId}
+    </select>
+
+    <select id="selectByStudentId" resultMap="appealResultMap">
+        SELECT * FROM t_appeal
+        WHERE student_id = #{studentId}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByExamIdsAndStudent" resultMap="appealResultMap">
+        SELECT * FROM t_appeal
+        WHERE student_id = #{studentId}
+          AND exam_id IN
+        <foreach collection="examIds" item="examId" open="(" close=")" separator=",">
+            #{examId}
+        </foreach>
+    </select>
+
+    <select id="selectByCondition" resultMap="appealResultMap">
+        SELECT * FROM t_appeal
+        <where>
+            <if test="studentId != null">
+                AND student_id = #{studentId}
+            </if>
+            <if test="examId != null">
+                AND exam_id = #{examId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY status ASC, create_time DESC
+    </select>
+
+</mapper>

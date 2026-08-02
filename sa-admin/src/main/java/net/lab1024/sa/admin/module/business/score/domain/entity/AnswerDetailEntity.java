@@ -1,8 +1,5 @@
 package net.lab1024.sa.admin.module.business.score.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -12,10 +9,8 @@ import java.time.LocalDateTime;
  * 答案详情表 t_answer_detail
  */
 @Data
-@TableName("t_answer_detail")
 public class AnswerDetailEntity {
 
-    @TableId(type = IdType.AUTO)
     private Long id;
 
     /** 作答记录 ID */

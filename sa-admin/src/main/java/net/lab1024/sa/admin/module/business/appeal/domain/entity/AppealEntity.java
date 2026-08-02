@@ -1,8 +1,5 @@
 package net.lab1024.sa.admin.module.business.appeal.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -12,10 +9,8 @@ import java.time.LocalDateTime;
  * 复议申请表 t_appeal
  */
 @Data
-@TableName("t_appeal")
 public class AppealEntity {
 
-    @TableId(type = IdType.AUTO)
     private Long appealId;
 
     /** 成绩 ID */

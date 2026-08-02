@@ -1,6 +1,5 @@
 package net.lab1024.sa.admin.module.business.appeal.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import net.lab1024.sa.admin.module.business.appeal.constant.AppealStatusEnum;
@@ -39,10 +38,8 @@ public class AppealService {
         RequestEmployee requestEmployee = AdminRequestUtil.getRequestUser();
 
         // 2. 业务校验：同一道题不可重复提交
-        AppealEntity existing = appealDao.selectOne(
-                new LambdaQueryWrapper<AppealEntity>()
-                        .eq(AppealEntity::getAnswerDetailId, form.getAnswerDetailId())
-                        .eq(AppealEntity::getStudentId, requestEmployee.getEmployeeId()));
+        AppealEntity existing = appealDao.selectByAnswerDetailAndStudent(
+                form.getAnswerDetailId(), requestEmployee.getEmployeeId());
         if (existing != null) {
             return ResponseDTO.userErrorParam("该题目已申请过复议，不可重复提交");
         }
@@ -82,10 +79,8 @@ public class AppealService {
     public ResponseDTO<Boolean> checkSubmitted(Long answerDetailId) {
         RequestEmployee requestEmployee = AdminRequestUtil.getRequestUser();
 
-        AppealEntity existing = appealDao.selectOne(
-                new LambdaQueryWrapper<AppealEntity>()
-                        .eq(AppealEntity::getAnswerDetailId, answerDetailId)
-                        .eq(AppealEntity::getStudentId, requestEmployee.getEmployeeId()));
+        AppealEntity existing = appealDao.selectByAnswerDetailAndStudent(
+                answerDetailId, requestEmployee.getEmployeeId());
 
         return ResponseDTO.ok(existing != null);
     }

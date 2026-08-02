@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.lab1024.sa.admin.module.business.score.dao.AnswerDetailDao">
+
+    <resultMap id="answerDetailResultMap" type="net.lab1024.sa.admin.module.business.score.domain.entity.AnswerDetailEntity">
+        <id property="id" column="id"/>
+        <result property="answerId" column="answer_id"/>
+        <result property="questionId" column="question_id"/>
+        <result property="userAnswer" column="user_answer"/>
+        <result property="voiceRecordUrl" column="voice_record_url"/>
+        <result property="score" column="score"/>
+        <result property="gradeType" column="grade_type"/>
+        <result property="gradeRemark" column="grade_remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <update id="updateById">
+        UPDATE t_answer_detail
+        SET answer_id        = #{answerId},
+            question_id      = #{questionId},
+            user_answer      = #{userAnswer},
+            voice_record_url = #{voiceRecordUrl},
+            score            = #{score},
+            grade_type       = #{gradeType},
+            grade_remark     = #{gradeRemark},
+            update_time      = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="answerDetailResultMap">
+        SELECT * FROM t_answer_detail WHERE id = #{id}
+    </select>
+
+    <select id="selectByAnswerId" resultMap="answerDetailResultMap">
+        SELECT * FROM t_answer_detail WHERE answer_id = #{answerId}
+    </select>
+
+    <select id="selectUngradedExternal" resultMap="answerDetailResultMap">
+        SELECT * FROM t_answer_detail
+        WHERE score IS NULL
+          AND grade_type = 2
+    </select>
+
+</mapper>

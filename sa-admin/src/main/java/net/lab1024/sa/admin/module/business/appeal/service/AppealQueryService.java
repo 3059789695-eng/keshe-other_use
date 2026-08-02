@@ -1,7 +1,7 @@
 package net.lab1024.sa.admin.module.business.appeal.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import net.lab1024.sa.admin.module.business.appeal.constant.AppealStatusEnum;
@@ -15,7 +15,6 @@ import net.lab1024.sa.base.common.code.UserErrorCode;
 import net.lab1024.sa.base.common.domain.PageResult;
 import net.lab1024.sa.base.common.domain.ResponseDTO;
 import net.lab1024.sa.base.common.util.SmartBeanUtil;
-import net.lab1024.sa.base.common.util.SmartPageUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -47,31 +46,31 @@ public class AppealQueryService {
             studentId = AdminRequestUtil.getRequestUserId();
         }
 
-        // 2. 构建查询条件
-        LambdaQueryWrapper<AppealEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AppealEntity::getStudentId, studentId)
-               .eq(form.getExamId() != null, AppealEntity::getExamId, form.getExamId())
-               .eq(form.getStatus() != null, AppealEntity::getStatus, form.getStatus());
+        // 2. 分页查询（PageHelper 自动拦截）
+        PageHelper.startPage(form.getPageNum().intValue(), form.getPageSize().intValue());
+        List<AppealEntity> entityList = appealDao.selectByCondition(
+                studentId, form.getExamId(), form.getStatus());
 
-        // 3. 排序：先按状态（待审核排最前），再按创建时间倒序
-        // MyBatis-Plus 不支持自定义排序表达式，使用 orderByAsc 对 status 升序（1=待审核 在前）
-        wrapper.orderByAsc(AppealEntity::getStatus)
-               .orderByDesc(AppealEntity::getCreateTime);
+        // 3. PageHelper 分页信息
+        PageInfo<AppealEntity> pageInfo = new PageInfo<>(entityList);
 
-        // 4. 分页查询
-        @SuppressWarnings("unchecked")
-        Page<AppealEntity> page = (Page<AppealEntity>) SmartPageUtil.convert2PageQuery(form);
-        Page<AppealEntity> pageResult = appealDao.selectPage(page, wrapper);
-
-        // 5. Entity 转 VO
-        List<AppealVO> voList = pageResult.getRecords().stream().map(entity -> {
+        // 4. Entity 转 VO
+        List<AppealVO> voList = pageInfo.getList().stream().map(entity -> {
             AppealVO vo = SmartBeanUtil.copy(entity, AppealVO.class);
             vo.setStatusText(AppealStatusEnum.getDescByValue(entity.getStatus()));
             // TODO: 关联查询考试标题、学生姓名、题目内容
             return vo;
         }).collect(Collectors.toList());
 
-        PageResult<AppealVO> result = SmartPageUtil.convert2PageResult(pageResult, voList, AppealVO.class);
+        // 5. 组装 PageResult
+        PageResult<AppealVO> result = new PageResult<>();
+        result.setPageNum((long) pageInfo.getPageNum());
+        result.setPageSize((long) pageInfo.getPageSize());
+        result.setTotal(pageInfo.getTotal());
+        result.setPages((long) pageInfo.getPages());
+        result.setList(voList);
+        result.setEmptyFlag(voList.isEmpty());
+
         return ResponseDTO.ok(result);
     }
 

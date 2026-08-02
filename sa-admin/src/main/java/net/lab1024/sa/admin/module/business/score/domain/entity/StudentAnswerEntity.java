@@ -1,8 +1,5 @@
 package net.lab1024.sa.admin.module.business.score.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,10 +8,8 @@ import java.time.LocalDateTime;
  * 学生作答记录表 t_student_answer
  */
 @Data
-@TableName("t_student_answer")
 public class StudentAnswerEntity {
 
-    @TableId(type = IdType.AUTO)
     private Long answerId;
 
     private Long examId;

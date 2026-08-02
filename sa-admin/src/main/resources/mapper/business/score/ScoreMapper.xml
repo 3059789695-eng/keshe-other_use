@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.lab1024.sa.admin.module.business.score.dao.ScoreDao">
+
+    <resultMap id="scoreResultMap" type="net.lab1024.sa.admin.module.business.score.domain.entity.ScoreEntity">
+        <id property="scoreId" column="score_id"/>
+        <result property="examId" column="exam_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="totalScore" column="total_score"/>
+        <result property="passStatus" column="pass_status"/>
+        <result property="rankPosition" column="rank_position"/>
+        <result property="submitTime" column="submit_time"/>
+        <result property="gradeTime" column="grade_time"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="scoreId">
+        INSERT INTO t_score (exam_id, student_id, total_score, pass_status, rank_position,
+                             submit_time, grade_time, remark, create_time, update_time)
+        VALUES (#{examId}, #{studentId}, #{totalScore}, #{passStatus}, #{rankPosition},
+                #{submitTime}, #{gradeTime}, #{remark}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateById">
+        UPDATE t_score
+        SET total_score   = #{totalScore},
+            pass_status   = #{passStatus},
+            rank_position = #{rankPosition},
+            submit_time   = #{submitTime},
+            grade_time    = #{gradeTime},
+            remark        = #{remark},
+            update_time   = #{updateTime}
+        WHERE score_id = #{scoreId}
+    </update>
+
+    <select id="selectById" resultMap="scoreResultMap">
+        SELECT * FROM t_score WHERE score_id = #{scoreId}
+    </select>
+
+    <select id="selectByExamIdAndStudent" resultMap="scoreResultMap">
+        SELECT * FROM t_score
+        WHERE exam_id = #{examId}
+          AND student_id = #{studentId}
+    </select>
+
+    <select id="selectByStudentId" resultMap="scoreResultMap">
+        SELECT * FROM t_score
+        WHERE student_id = #{studentId}
+        ORDER BY submit_time DESC
+    </select>
+
+</mapper>
